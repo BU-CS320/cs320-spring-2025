@@ -47,8 +47,15 @@ let gensym () =
   let _ = count := 1 + !count in
   TVar ("$" ^ string_of_int !count)
 
-let instantiate (Forall (_bvs, _ty) : ty_scheme) : ty =
-  assert false
+let instantiate (Forall (bvs, ty) : ty_scheme) : ty =
+  let bvs = VarSet.to_list bvs in
+  let rec go bvs ty =
+    match bvs with
+    | [] -> ty
+    | a :: bvs ->
+      let b = gensym () in
+      go bvs (ty_subst b a ty)
+  in go bvs ty
 
 let rec type_of (ctxt : stc_env) (e : expr) : ty * constr list =
   let rec go = function
@@ -85,15 +92,35 @@ let rec type_of (ctxt : stc_env) (e : expr) : ty * constr list =
       | Some ty_scheme -> instantiate ty_scheme, []
   in go e
 
-let apply_solution (_s : solution) (_ty : ty) : ty =
-  assert false (* Hint: fold *)
+let apply_solution (s : solution) (ty : ty) : ty =
+  let rec go s ty =
+    match s with
+    | [] -> ty
+    | (x, ty') :: s -> go s (ty_subst ty' x ty)
+  in go s ty
 
 let principle_type (ty, cs) =
+  (* unification *)
   match unify cs with
   | Some s ->
+    (* generalization *)
     let ty = apply_solution s ty in
     Some (Forall (free ty, ty))
   | None -> None
+
+let rec type_check (ctxt: stc_env) (p : prog) : bool =
+  match p with
+  | [] -> true
+  | (x, e) :: p -> (
+    (* inference *)
+    let ty, cs = type_of ctxt e in
+    let pty = principle_type (ty, cs) in
+    match pty with
+    | None -> false (* type error *)
+    | Some ty_scheme ->
+      let _ = print_endline (x ^ " : " ^ string_of_ty_scheme ty_scheme) in
+      type_check (Env.add x ty_scheme ctxt) p
+  )
 
 let rec eval (env : env) (e : expr) : value option =
   let rec go e =
@@ -166,5 +193,8 @@ let rec desugar = function
 
 let interp (s : string) : value option =
   match parse s with
-  | Some p -> eval Env.empty (desugar p)
+  | Some p ->
+    if type_check Env.empty p
+    then eval Env.empty (desugar p)
+    else None
   | None -> None

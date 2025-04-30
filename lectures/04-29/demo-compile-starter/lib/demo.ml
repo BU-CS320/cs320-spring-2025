@@ -13,7 +13,10 @@ let emit_op op =
     | Div -> 3
   in emit (code_of_op op)
 
-let compile = assert false
+let rec compile e =
+  match e with
+  | Num n -> emit_int n
+  | Bop(op, e1, e2) -> compile e2; compile e1; emit_op op
 
 let compile_str s =
   let rec go = function

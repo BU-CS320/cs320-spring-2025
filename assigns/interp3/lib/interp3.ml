@@ -5,17 +5,31 @@ let parse (s : string) : prog option =
   | prog -> Some prog
   | exception _ -> None
 
-let principle_type (_ty : ty) (_cs : constr list) : ty_scheme option = assert false
+let principle_type (ty : ty) (cs : constr list) : ty_scheme option =
+  match cs with
+  | Some -> Some
+  | None -> None
 
-let type_of (_ctxt: stc_env) (_e : expr) : ty_scheme option = assert false
+let type_of (ctxt: stc_env) (e : expr) : ty_scheme option =
+  match e with
+  | Some (ty, cs) -> principle_type ty cs
+  | None -> None
 
-let is_well_typed (_p : prog) : bool = assert false
+let is_well_typed (p : prog) : bool =
+  match prog with
+  | Some _ -> true
+  | None -> false
 
 exception AssertFail
 exception DivByZero
 exception CompareFunVals
 
-let eval_expr (_env : dyn_env) (_e : expr) : value = assert false
+let eval_expr (env : dyn_env) (e : expr) : value =
+  match e with
+  | Unit -> VUnit
+  | Bool b -> VBool b
+  | Int n -> VInt n
+  | Float f -> VFloat f
 
 let eval p =
   let rec nest = function
